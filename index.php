@@ -12,7 +12,7 @@ include("functions.php");
 /* Check input else exit */
 $player = $_GET["player"];
 $player = protectInput($player);
-if(empty($_GET["player"]) || (file_get_contents("https://minecraft.net/haspaid.jsp?user=$player") != "true")) die("Player Invalid"); // Check for get and if player is premium
+if(empty($_GET["player"]) || (file_get_contents("http://minecraft.net/haspaid.jsp?user=$player") != "true")) die("Player Invalid"); // Check for get and if player is premium
 
 /* Theme Data */
 $theme = $_GET["theme"];
@@ -47,9 +47,9 @@ switch ($theme) {
 }
 
 /* Turn from string into array */
-$playerdata = file_get_contents("http://wynncraft.com/api/public_api.php?type=player&player=$player");
+$playerdata = file_get_contents("http://api.wynncraft.com/public_api.php?action=playerStats&command=$player");
 if($playerdata == "false") die("Player not logged in Wynncraft stats"); // Has the player actually been on Wynncraft?
-$playerdata = explode(",", $playerdata);
+$playerdata = json_decode($playerdata, true);
 	
 /* Array Doc
 -Adding &json outputs json instead of csv
@@ -87,29 +87,33 @@ imageline($img, imagesx($img) / 1.15, imagesy($img) / 1.5, imagesx($img) / 1.15,
 
 /* Text */
 // Handle rank data
-$rank = $playerdata[0]; 
+$rank = $playerdata['rank']; 
 switch ($rank){
-	case 0:
+	case "Member":
 		$rank = "Member";
 		$colorrank = imagecolorallocate($img, 220, 220, 220);
 		break;
-	case 1:
+	case "VIP":
 		$rank = "VIP";
 		$colorrank = imagecolorallocate($img, 0, 170, 0);
 		break;
-	case 2:
+	case "VIP+":
+		$rank = "VIP+";
+		$colorrank = imagecolorallocate($img, 0, 255, 255);
+		break;
+	case "Moderator":
 		$rank = "Moderator";
 		$colorrank = imagecolorallocate($img, 255, 170, 0);
 		break;
-	case 3:
+	case "Administrator":
 		$rank = "Administrator";
 		$colorrank = imagecolorallocate($img, 170, 0, 0);
 		break;
 }
 
 // Handle current server
-if(strstr($playerdata[3], "WC")) {
-	$currentserver = "Playing on Server $playerdata[3]";
+if(strstr($playerdata['current_server'], "WC")) {
+	$currentserver = "Playing on Server ".$playerdata['current_server']."";
 	$colorstatus = imagecolorallocate($img, 0, 170, 0); // Green if online
 } else {
 	$currentserver = "Offline or in Lobby";
@@ -117,8 +121,8 @@ if(strstr($playerdata[3], "WC")) {
 }
 
 // Handle kills
-$mobs = convertNum($playerdata[5]);
-$players = convertNum($playerdata[7]);
+$mobs = convertNum($playerdata['global']['mobs_killed']);
+$players = convertNum($playerdata['global']['pvp_kills']);
 
 if($mobs == 1) { // Convert for plurals
 	$mobslocale = "mob";
@@ -149,10 +153,10 @@ imagettftext($img, 10, 0, 15, 35, $color, $font, "Rank:"); // Rank
 imagettftext($img, 10, 0, 65, 35, $colorrank, $fontalt, "$rank");
 
 imagettftext($img, 10, 0, 15, 50, $color, $font, "Playtime:"); // Playtime
-imagettftext($img, 10, 0, 85, 50, $coloralt, $fontalt, "$playerdata[2] $playtimelocale"); 
+imagettftext($img, 10, 0, 85, 50, $coloralt, $fontalt, "".$playerdata['playtime']." $playtimelocale"); 
 
 imagettftext($img, 10, 0, 15, 63, $color, $font, "Total Level:"); // Total level
-imagettftext($img, 10, 0, 100, 63, $coloralt, $fontalt, "$playerdata[12]"); 
+imagettftext($img, 10, 0, 100, 63, $coloralt, $fontalt, "".$playerdata['global']['total_level'].""); 
 
 imagettftext($img, 10, 0, 15, 76, $color, $font, "Killed:"); // kills
 imagettftext($img, 10, 0, 65, 76, $coloralt, $fontalt, "$mobs $mobslocale & $players $playerslocale");
